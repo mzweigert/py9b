@@ -42,9 +42,12 @@ def UpdateFirmware(link, tran, dev, fwfile):
 		return False
 	print('OK')
 
-	print('Locking...')
-	tran.execute(WriteRegs(BT.ESC, 0x70, '<H', 0x0001))
-	
+	if args.interface!='blefleet':
+		print('Locking...')
+		tran.execute(WriteRegs(BT.ESC, 0x70, '<H', 0x0001))
+	else:
+		print('Not Locking...')
+
 	print('Starting...')
 	tran.execute(StartUpdate(dev, fw_size))
 
@@ -75,18 +78,18 @@ def UpdateFirmware(link, tran, dev, fwfile):
 
 parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
 	description='Xiaomi/Ninebot firmware flasher',
-	epilog='Example 1:  %(prog)s ble ble_patched.bin  - flash ble_patched.bin to BLE using default communication parameters' 
+	epilog='Example 1:  %(prog)s ble ble_patched.bin  - flash ble_patched.bin to BLE using default communication parameters'
 	'\nExample 2:  %(prog)s -i tcp -a 192.168.1.10:6000 bms bms115.bin  - flash bms115.bin to BMS over TCP-BLE bridge at 192.168.1.10:6000'
 	'\nExample 3:  %(prog)s -i serial -a COM2 esc CFW.bin  - flash CFW.bin to ESC via COM2'
 	'\nExample 4:  %(prog)s -i ble -a 12:34:56:78:9A:BC -p ninebot extbms bms107.bin  - flash bms107.bin to Ninebot\'s external BMS via BLE, use specified BLE address')
-	
+
 devices = {'ble' : BT.BLE, 'esc' : BT.ESC, 'bms' : BT.BMS, 'extbms' : BT.EXTBMS }
 parser.add_argument('device', help='target device', type=str.lower, choices=devices)
 
 parser.add_argument('file', type=argparse.FileType('rb'), help='firmware file')
 
 parser.add_argument('-i', '--interface', help='communication interface, default: %(default)s', type=str.lower,
-	choices=('ble', 'serial', 'tcp'),  default='ble')
+	choices=('ble', 'serial', 'tcp', 'blefleet'),  default='ble')
 
 parser.add_argument('-a', '--address', help='communication address (ble: BDADDR, serial: port, tcp: host:port), default: first available')
 
@@ -116,9 +119,15 @@ elif args.interface=='tcp':
 elif args.interface=='serial':
 	from py9b.link.serial import SerialLink
 	link = SerialLink()
+elif args.interface=='blefleet':
+	try:
+		from py9b.link.blefleet import BLELink
+	except:
+		exit('BLE is not supported on your system !')
+	link = BLELink()
 else:
 	exit('!!! BUG !!! Unknown interface selected: '+args.interface)
-		
+
 with link:
 	tran = protocols.get(args.protocol)(link)
 
