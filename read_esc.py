@@ -23,7 +23,7 @@ with link:
 	#tran = XiaomiTransport(link)
 	tran = NinebotTransport(link)
 
-	#link.open(("192.168.1.45", 6000))
+	#link.open(("127.0.0.1", 6000))
 	link.open(ports[0][1])
 	print "Connected"
 

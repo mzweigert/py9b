@@ -79,7 +79,7 @@ def UpdateFirmware(link, tran, dev, fwfile):
 parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
 	description='Xiaomi/Ninebot firmware flasher',
 	epilog='Example 1:  %(prog)s ble ble_patched.bin  - flash ble_patched.bin to BLE using default communication parameters'
-	'\nExample 2:  %(prog)s -i tcp -a 192.168.1.10:6000 bms bms115.bin  - flash bms115.bin to BMS over TCP-BLE bridge at 192.168.1.10:6000'
+	'\nExample 2:  %(prog)s -i tcp -a 127.0.1.10:6000 bms bms115.bin  - flash bms115.bin to BMS over TCP-BLE bridge at 127.0.1.10:6000'
 	'\nExample 3:  %(prog)s -i serial -a COM2 esc CFW.bin  - flash CFW.bin to ESC via COM2'
 	'\nExample 4:  %(prog)s -i ble -a 12:34:56:78:9A:BC -p ninebot extbms bms107.bin  - flash bms107.bin to Ninebot\'s external BMS via BLE, use specified BLE address')
 

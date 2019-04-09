@@ -11,7 +11,7 @@ with TCPLink() as link:
 	
 	tran = XiaomiTransport(link)
 
-	#link.open(("192.168.1.45", 6000))
+	#link.open(("127.0.0.1", 6000))
 	link.open(ports[0][1])
 
 	#req = PKT(src=BT.HOST, dst=BT.ESC, cmd=0x01, arg=0x10, data="\x10")

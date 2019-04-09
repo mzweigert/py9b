@@ -42,7 +42,7 @@ def ReadAllRegs(link, tran, dev, hfo):
 parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
 	description='Xiaomi/Ninebot register reader',
 	epilog='Example 1:  %(prog)s esc esc_regs.bin  - read ESC regs to esc_regs.bin using default communication parameters' 
-	'\nExample 2:  %(prog)s -i tcp -a 192.168.1.10:6000 bms bms_regs.bin  - flash BMS regs over TCP-BLE bridge at 192.168.1.10:6000'
+	'\nExample 2:  %(prog)s -i tcp -a 127.0.1.10:6000 bms bms_regs.bin  - flash BMS regs over TCP-BLE bridge at 127.0.1.10:6000'
 	'\nExample 3:  %(prog)s -i serial -a COM2 esc esc_regs.bin  - read ESC regs via COM2'
 	'\nExample 4:  %(prog)s -i ble -a 12:34:56:78:9A:BC esc esc_regs.bin  - read ESC regs via BLE, use specified BLE address')
 	

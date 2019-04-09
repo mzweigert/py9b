@@ -25,7 +25,8 @@ with link:
 #	link.open(ports[0][1])
 	print "Connected"
 
-	print('Reboot...')
-	tran.execute(WriteRegs(BT.ESC, 0x78, '<H', 0x0001))
+	print 'Reading passwd...'
+	pwd = tran.execute(ReadRegs(BT.ESC, 0x17, "6s")) 
+	print "Passwd:", pwd
 
 	link.close()

@@ -25,7 +25,7 @@ with link:
 #	link.open(ports[0][1])
 	print "Connected"
 
-	print('Reboot...')
-	tran.execute(WriteRegs(BT.ESC, 0x78, '<H', 0x0001))
+	print('Locking...')
+	tran.execute(WriteRegs(BT.ESC, 0x70, '<H', 0x0001)) 
 
 	link.close()
