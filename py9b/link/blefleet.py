@@ -8,11 +8,14 @@ from binascii import hexlify
 SCAN_TIMEOUT = 3
 
 
-import Queue
+try:
+	import queue
+except ImportError:
+	import Queue as queue
 
 class Fifo():
 	def __init__(self):
-		self.q = Queue.Queue()
+		self.q = queue.Queue()
 
 	def write(self, data): # put bytes
 		for b in data:
@@ -84,7 +87,7 @@ class BLELink(BaseLink):
 	def read(self, size):
 		try:
 			data = self._rx_fifo.read(size, timeout=self.timeout)
-		except Queue.Empty:
+		except queue.Empty:
 			raise LinkTimeoutException
 		if self.dump:
 			print '<', hexlify(data).upper()
