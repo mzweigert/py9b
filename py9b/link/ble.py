@@ -44,7 +44,7 @@ class BLELink(BaseLink):
 
 
 	def __enter__(self):
-		self._adapter = pygatt.BGAPIBackend()
+		self._adapter = pygatt.GATTToolBackend()
 		self._adapter.start()
 		return self
 
@@ -63,7 +63,7 @@ class BLELink(BaseLink):
 		res = []
 		devices = self._adapter.scan(timeout=SCAN_TIMEOUT)
 		for dev in devices:
-			if dev['name'].startswith((u'MISc', u'NBSc')):
+			if dev['name'] and dev['name'].startswith((u'MISc', u'NBSc', u'JP2', u'Seg')):
 				res.append((dev['name'], dev['address']))
 		return res
 
