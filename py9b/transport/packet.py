@@ -8,7 +8,6 @@ class BasePacket(object):
         self.cmd = cmd
         self.arg = arg
         self.data = data
-        print(self.data)
 
     def __str__(self):
         return "%s->%s: %02X @%02X %s" % (BT.GetDeviceName(self.src), BT.GetDeviceName(self.dst), self.cmd, self.arg, hexlify(self.data).upper())

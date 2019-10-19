@@ -6,6 +6,7 @@ from threading import Thread
 
 _rx_char_uuid = '6e400002-b5a3-f393-e0a9-e50e24dcca9e'
 _tx_char_uuid = '6e400003-b5a3-f393-e0a9-e50e24dcca9e'
+_keys_char_uuid = '00000014-0000-1000-8000-00805f9b34fb'
 
 try:
     import queue
@@ -39,17 +40,26 @@ class BleakLink(BaseLink):
         self.loop = loop or asyncio.get_event_loop()
         self._rx_fifo = Fifo()
         self._client = None
+        self._th = None
 
     def __enter__(self):
+        self.start()
+        return self
+
+    def start(self):
+        if self._th:
+            return
+
         self._th = Thread(target=run_worker, args=(self.loop,))
         self._th.daemon = True
         self._th.start()
 
-        return self
-
     def __exit__(self, exc_type, exc_value, traceback):
         if self._client:
-            asyncio.run_coroutine_threadsafe(self._client.disconnect(), self.loop).result(10)
+            self.close()
+
+    def close(self):
+        asyncio.run_coroutine_threadsafe(self._client.disconnect(), self.loop).result(10)
 
     def scan(self, timeout=1):
         future = asyncio.run_coroutine_threadsafe(discover(timeout=timeout, device=self.device), self.loop)
@@ -64,7 +74,7 @@ class BleakLink(BaseLink):
         await self._client.connect()
         print('connected')
         await self._client.start_notify(_tx_char_uuid, self._data_received)
-        print('services:', await self._client.get_services())
+        print('services:', list(await self._client.get_services()))
 
     def _data_received(self, sender, data):
         print('<<', ' '.join(map(lambda b: '%02x' % b, data)))
@@ -82,4 +92,5 @@ class BleakLink(BaseLink):
             raise LinkTimeoutException
         return data
 
-
+    def fetch_keys(self):
+        return asyncio.run_coroutine_threadsafe(self._client.read_gatt_char(_keys_char_uuid), self.loop).result(5)
