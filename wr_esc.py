@@ -6,27 +6,27 @@ from py9b.transport.base import BaseTransport as BT
 from py9b.transport.packet import BasePacket as PKT
 from py9b.transport.xiaomi import XiaomiTransport
 
-#link = SerialLink()
+# link = SerialLink()
 link = TCPLink()
-#link = BLELink()
+# link = BLELink()
 
 with link:
-	print "Scanning..."
-	ports = link.scan()
-	print ports
+    print("Scanning...")
+    ports = link.scan()
+    print(ports)
 
-	tran = XiaomiTransport(link)
+    tran = XiaomiTransport(link)
 
-	link.open(("127.0.0.1", 6000))
-	#link.open(ports[0][1])
-	print "Connected"
+    link.open(("127.0.0.1", 6000))
+    # link.open(ports[0][1])
+    print("Connected")
 
-	req = PKT(src=BT.HOST, dst=BT.ESC, cmd=0x02, arg=0x41, data="\xCE\xAB\x00\x00")
+    req = PKT(src=BT.HOST, dst=BT.ESC, cmd=0x02, arg=0x41, data="\xCE\xAB\x00\x00")
 
-	tran.send(req)
-	try:
-		rsp = tran.recv()
-	finally:
-		link.close()
+    tran.send(req)
+    try:
+        rsp = tran.recv()
+    finally:
+        link.close()
 
-	print rsp
+    print(rsp)
