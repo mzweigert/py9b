@@ -48,13 +48,13 @@ class SerialLink(BaseLink):
 		if len(data)<size:
 			raise LinkTimeoutException
 		if self.dump:
-			print "<", hexlify(data).upper()
+			print("<", hexlify(data).upper())
 		return data
 
 
 	def write(self, data):
 		if self.dump:
-			print ">", hexlify(data).upper()
+			print(">", hexlify(data).upper())
 		self.com.write(data)
 
 
