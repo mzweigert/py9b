@@ -62,6 +62,55 @@ def cli(ctx, transport, link, address):
 
 @cli.command()
 @click.pass_context
+def dump(ctx):
+    with ctx.obj as tran:
+        for offset in range(256):
+            try:
+                print('0x%02x: %04x' % (offset, tran.execute(ReadRegs(BT.ESC, offset, "<H"))[0]))
+            except Exception as exc:
+                print('0x%02x: %s' % (offset, exc))
+
+@cli.command()
+@click.pass_context
+def sniff(ctx):
+    with ctx.obj as tran:
+        while True:
+            try:
+                print(tran.recv())
+            except Exception as exc:
+                print(exc)
+                pass
+
+@cli.command()
+@click.pass_context
+def powerdown(ctx):
+    with ctx.obj as tran:
+        tran.execute(WriteRegs(BT.ESC, 0x79, "<H", 0x0001))
+        print('Done')
+
+@cli.command()
+@click.pass_context
+def lock(ctx):
+    with ctx.obj as tran:
+        tran.execute(WriteRegs(BT.ESC, 0x70, "<H", 0x0001))
+        print('Done')
+
+@cli.command()
+@click.pass_context
+def unlock(ctx):
+    with ctx.obj as tran:
+        tran.execute(WriteRegs(BT.ESC, 0x71, "<H", 0x0001))
+        print('Done')
+
+@cli.command()
+@click.pass_context
+def reboot(ctx):
+    with ctx.obj as tran:
+        tran.execute(WriteRegs(BT.ESC, 0x78, "<H", 0x0001))
+        print('Done')
+
+@cli.command()
+@click.pass_context
 def info(ctx):
     with ctx.obj as tran:
         print('ESC S/N:       %s' % tran.execute(ReadRegs(BT.ESC, 0x10, "14s"))[0].decode())
