@@ -1,5 +1,6 @@
 import click
 
+from py9b.link.base import LinkTimeoutException
 from py9b.transport.base import BaseTransport as BT
 from py9b.command.regio import ReadRegs
 
@@ -19,7 +20,7 @@ class Connection:
             link = TCPLink()
         elif self.link == 'serial':
             from py9b.link.serial import SerialLink
-            link = SerialLink()
+            link = SerialLink(timeout=0.1)
 
         link.__enter__()
 
@@ -53,9 +54,12 @@ class Connection:
         self._link.__exit__(a, b, c)
 
 @click.group()
-@click.option('--transport', default='ninebot')
-@click.option('--link', default='bleak')
-@click.option('--address', default=None)
+@click.option('--transport', default='ninebot',
+              help='Transport to use (one of xiaomi, ninebot)')
+@click.option('--link', default='bleak',
+              help='Link implementation to use (one of serial, tcp, bleak)')
+@click.option('--address', default=None,
+              help='Device address to use (dependent on link, defaults to automatic scan)')
 @click.pass_context
 def cli(ctx, transport, link, address):
     ctx.obj = Connection(transport, link, address)
@@ -77,9 +81,10 @@ def sniff(ctx):
         while True:
             try:
                 print(tran.recv())
+            except LinkTimeoutException as exc:
+                pass
             except Exception as exc:
                 print(exc)
-                pass
 
 @cli.command()
 @click.pass_context
@@ -109,6 +114,23 @@ def reboot(ctx):
         tran.execute(WriteRegs(BT.ESC, 0x78, "<H", 0x0001))
         print('Done')
 
+def print_reg(tran, desc, reg, format, dev=BT.ESC):
+    try:
+        data = tran.execute(ReadRegs(dev, reg, format))
+        print(desc % data)
+    except Exception as exc:
+        print(desc, repr(exc))
+
+def bms_info(tran, dev):
+    print('BMS S/N:         %s' % tran.execute(ReadRegs(dev, 0x10, "14s"))[0].decode())
+    print_reg(tran, 'BMS Version:     %04x', 0x17, "<H", dev=dev)
+    print_reg(tran, 'BMS charge:      %d%%', 0x32, "<H", dev=dev)
+    print_reg(tran, 'BMS full cycles: %d', 0x1b, "<H", dev=dev)
+    print_reg(tran, 'BMS charges:     %d', 0x1c, "<H", dev=dev)
+    print_reg(tran, 'BMS health:      %d%%', 0x3b, "<H", dev=dev)
+    print('BMS current:     %.2fA' % (tran.execute(ReadRegs(dev, 0x33, "<h"))[0] / 100.0,))
+    print('BMS voltage:     %.2fV' % (tran.execute(ReadRegs(dev, 0x34, "<h"))[0] / 100.0,))
+
 @cli.command()
 @click.pass_context
 def info(ctx):
@@ -116,21 +138,31 @@ def info(ctx):
         print('ESC S/N:       %s' % tran.execute(ReadRegs(BT.ESC, 0x10, "14s"))[0].decode())
         print('ESC PIN:       %s' % tran.execute(ReadRegs(BT.ESC, 0x17, "6s"))[0].decode())
         print()
-        #print('BMS S/N:       %s' % tran.execute(ReadRegs(BT.BMS, 0x10, "14s"))[0].decode())
-        #print('ExtBMS S/N:    %s' % tran.execute(ReadRegs(BT.EXTBMS, 0x10, "14s"))[0].decode())
+        print_reg(tran, 'BLE Version:   %04x', 0x68, "<H")
+        print_reg(tran, 'ESC Version:   %04x', 0x1A, "<H")
         print()
-        print('BLE Version:   %04x' % tran.execute(ReadRegs(BT.ESC, 0x68, "<H")))
-        print('ESC Version:   %04x' % tran.execute(ReadRegs(BT.ESC, 0x1A, "<H")))
-        #print('BMS Version:   %04x' % tran.execute(ReadRegs(BT.BMS, 0x17, "<H")))
-        print()
-        print('Error code:    %d' % tran.execute(ReadRegs(BT.ESC, 0x1B, "<H")))
-        print('Warning code:  %d' % tran.execute(ReadRegs(BT.ESC, 0x1C, "<H")))
+        print_reg(tran, 'Error code:    %d', 0x1B, "<H")
+        print_reg(tran, 'Warning code:  %d', 0x1C, "<H")
         print()
         print('Total mileage: %s' % pp_distance(tran.execute(ReadRegs(BT.ESC, 0x29, "<L"))[0]))
-        print('Total runtime: %s' % pp_time(tran.execute(ReadRegs(BT.ESC, 0x32, "<H"))[0]))
-        print('Total riding:  %s' % pp_time(tran.execute(ReadRegs(BT.ESC, 0x34, "<H"))[0]))
+        print('Total runtime: %s' % pp_time(tran.execute(ReadRegs(BT.ESC, 0x32, "<L"))[0]))
+        print('Total riding:  %s' % pp_time(tran.execute(ReadRegs(BT.ESC, 0x34, "<L"))[0]))
         print('Chassis temp:  %d°C' % (tran.execute(ReadRegs(BT.ESC, 0x3e, "<H"))[0] / 10.0,))
         print()
+
+        try:
+            print(' *** Internal BMS ***')
+            bms_info(tran, BT.BMS)
+        except Exception as exc:
+            print('No internal BMS found', repr(exc))
+
+        print()
+
+        try:
+            print(' *** External BMS ***')
+            bms_info(tran, BT.EXTBMS)
+        except Exception as exc:
+            print('No external BMS found', repr(exc))
 
 def pp_distance(dist):
     if dist < 1000:
