@@ -17,7 +17,7 @@ PING_RETRIES = 20
 
 def checksum(s, data):
     for c in data:
-        s += ord(c)
+        s += c
     return s & 0xFFFFFFFF
 
 
@@ -99,7 +99,7 @@ parser.add_argument(
     "--interface",
     help="communication interface, default: %(default)s",
     type=str.lower,
-    choices=("ble", "serial", "tcp", "blefleet"),
+    choices=("ble", "serial", "tcp", "blefleet", "bleak"),
     default="ble",
 )
 
@@ -149,6 +149,12 @@ elif args.interface == "blefleet":
     except:
         exit("BLE is not supported on your system !")
     link = BLELink()
+elif args.interface == "bleak":
+    try:
+        from py9b.link.bleak import BleakLink
+    except:
+        exit("BLE is not supported on your system !")
+    link = BleakLink()
 else:
     exit("!!! BUG !!! Unknown interface selected: " + args.interface)
 
