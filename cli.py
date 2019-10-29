@@ -1,8 +1,9 @@
 import click
+import time
 
 from py9b.link.base import LinkTimeoutException
 from py9b.transport.base import BaseTransport as BT
-from py9b.command.regio import ReadRegs
+from py9b.command.regio import ReadRegs, WriteRegs
 
 class Connection:
     def __init__(self, transport, link, address):
@@ -20,7 +21,7 @@ class Connection:
             link = TCPLink()
         elif self.link == 'serial':
             from py9b.link.serial import SerialLink
-            link = SerialLink(timeout=0.1)
+            link = SerialLink(timeout=1.0)
 
         link.__enter__()
 
@@ -65,12 +66,19 @@ def cli(ctx, transport, link, address):
     ctx.obj = Connection(transport, link, address)
 
 @cli.command()
+@click.option('--device', default='esc', help='Which device to dump (one of esc, ble, bms, extbms)')
 @click.pass_context
-def dump(ctx):
+def dump(ctx, device):
+    dev = {
+        'esc': BT.ESC,
+        'ble': BT.BLE,
+        'bms': BT.BMS,
+        'extbms': BT.EXTBMS,
+    }[device]
     with ctx.obj as tran:
         for offset in range(256):
             try:
-                print('0x%02x: %04x' % (offset, tran.execute(ReadRegs(BT.ESC, offset, "<H"))[0]))
+                print('0x%02x: %04x' % (offset, tran.execute(ReadRegs(dev, offset, "<H"))[0]))
             except Exception as exc:
                 print('0x%02x: %s' % (offset, exc))
 
@@ -163,6 +171,36 @@ def info(ctx):
             bms_info(tran, BT.EXTBMS)
         except Exception as exc:
             print('No external BMS found', repr(exc))
+
+@cli.command()
+@click.argument('new_sn')
+@click.pass_context
+def changesn(ctx, new_sn):
+    from py9b.command.mfg import WriteSN, CalcSNAuth
+
+    with ctx.obj as tran:
+        old_sn = tran.execute(ReadRegs(BT.ESC, 0x10, "14s"))[0].decode()
+        print("Old S/N:", old_sn)
+
+        uid3 = tran.execute(ReadRegs(BT.ESC, 0xDE, "<L"))[0]
+        print("UID3: %08X" % (uid3))
+
+        auth = CalcSnAuth(old_sn, new_sn, uid3)
+        # auth = 0
+        print("Auth: %08X" % (auth))
+
+        try:
+            tran.execute(WriteSN(BT.ESC, new_sn.encode('utf-8'), auth))
+            print("OK")
+        except LinkTimeoutException:
+            print("Timeout !")
+
+        # save config and restart
+        tran.execute(WriteRegs(BT.ESC, 0x78, "<H", 0x01))
+        time.sleep(3)
+
+        old_sn = tran.execute(ReadRegs(BT.ESC, 0x10, "14s"))[0]
+        print("Current S/N:", old_sn)
 
 def pp_distance(dist):
     if dist < 1000:
