@@ -27,20 +27,21 @@ class BaseTransport(object):
 
     def __init__(self, link):
         self.link = link
+        self.retries = 1
 
     def recv(self):
         raise NotImplementedError()
 
-    def send(self, src, dst, cmd, arg, data=""):
+    def send(self, src, dst, cmd, arg, data=bytearray()):
         raise NotImplementedError()
 
-    def execute(self, command):
+    def execute(self, command, retries=None):
         self.send(command.request)
         if not command.has_response:
             return True
             # TODO: retry ?
         exc = None
-        for n in range(1):
+        for n in range(retries or self.retries):
             try:
                 rsp = self.recv()
                 return command.handle_response(rsp)

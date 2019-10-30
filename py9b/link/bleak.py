@@ -1,12 +1,17 @@
 import asyncio
 
 from bleak import discover, BleakClient
-from py9b.link.base import BaseLink
+from py9b.link.base import BaseLink, LinkTimeoutException
 from threading import Thread
 
 _rx_char_uuid = "6e400002-b5a3-f393-e0a9-e50e24dcca9e"
 _tx_char_uuid = "6e400003-b5a3-f393-e0a9-e50e24dcca9e"
 _keys_char_uuid = "00000014-0000-1000-8000-00805f9b34fb"
+
+_manuf_id = 0x424e
+_manuf_data_ninebot = [33, 0, 0, 0, 0, 222]
+_manuf_data_xiaomi =  [33, 0, 0, 0, 0, 223]
+_manuf_data_xiaomi_pro =  [34, 1, 0, 0, 0, 220]
 
 try:
     import queue
@@ -66,13 +71,20 @@ class BleakLink(BaseLink):
         )
 
     def scan(self, timeout=1):
-        future = asyncio.run_coroutine_threadsafe(
+        devices = asyncio.run_coroutine_threadsafe(
+            discover(timeout=timeout, device=self.device), self.loop
+        ).result(timeout*3)
+
+        # We need to keep scanning going for connect() to properly work
+        asyncio.run_coroutine_threadsafe(
             discover(timeout=timeout, device=self.device), self.loop
         )
+
         return [
             (dev.name, dev.address)
-            for dev in future.result(timeout * 2)
-            if dev.name.startswith(("MISc", "NBSc"))
+            for dev in devices
+            if dev.metadata.get('manufacturer_data', {}).get(_manuf_id, [])
+                in [_manuf_data_xiaomi, _manuf_data_xiaomi_pro, _manuf_data_ninebot]
         ]
 
     def open(self, port):
@@ -80,20 +92,20 @@ class BleakLink(BaseLink):
         fut.result(10)
 
     async def _connect(self, port):
-        self._client = BleakClient(port[1], device=self.device)
+        if isinstance(port, tuple):
+            port = port[1]
+        self._client = BleakClient(port, device=self.device)
         await self._client.connect()
         print("connected")
         await self._client.start_notify(_tx_char_uuid, self._data_received)
         print("services:", list(await self._client.get_services()))
 
     def _data_received(self, sender, data):
-        print("<<", " ".join(map(lambda b: "%02x" % b, data)))
         self._rx_fifo.write(data)
 
     def write(self, data):
-        print(">>", " ".join(map(lambda b: "%02x" % b, data)))
         fut = asyncio.run_coroutine_threadsafe(
-            self._client.write_gatt_char(_rx_char_uuid, bytearray(data), False),
+            self._client.write_gatt_char(_rx_char_uuid, bytearray(data), True),
             self.loop,
         )
         return fut.result(3)

@@ -1,8 +1,20 @@
 """Manufacturer commands"""
 
-from struct import pack, unpack
+from struct import pack
 from .base import BaseCommand, InvalidResponse
 
+
+def CalcSNAuth(oldsn, newsn, uid3):
+    s = 0
+    for i in range(0x0E):
+        s += ord(oldsn[i])
+        s *= ord(newsn[i])
+    s += uid3 + (uid3 << 4)
+    s &= 0xFFFFFFFF
+    if (s & 0x80000000) != 0:
+        s = 0x100000000 - s
+
+    return s % 1000000
 
 class AuthError(Exception):
     pass
@@ -23,4 +35,4 @@ class WriteSN(BaseCommand):
         return True
 
 
-__all__ = ["AuthError", "WriteSN"]
+__all__ = ["AuthError", "WriteSN", "CalcSNAuth"]
