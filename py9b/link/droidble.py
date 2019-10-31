@@ -27,10 +27,20 @@ except:
     print('no toast for you')
 
 
-identity = bytearray(
+esxidentity = bytearray(
     [
         0x4E, 0x42, 0x21, 0x00, 0x00, 0x00, 0x00, 0xDE,  # Ninebot Bluetooth ID 4E422100000000DE
+    ]
+)
+
+m365identity = bytearray(
+    [
         0x4E, 0x42, 0x21, 0x00, 0x00, 0x00, 0x00, 0xDF,  # Xiaomi M365 Bluetooth ID 4E422100000000DF
+    ]
+)
+
+m365proidentity = bytearray(
+    [
         0x4E, 0x42, 0x22, 0x01, 0x00, 0x00, 0x00, 0xDC,  # Xiaomi M365 Pro Bluetooth ID 4E422201000000DC
     ]
 )
@@ -109,7 +119,11 @@ class BLE(BluetoothDispatcher):
             for ad in advertisement:
                 print(ad)
                 if ad.ad_type == Advertisement.ad_types.manufacturer_specific_data:
-                    if ad.data.startswith(identity):
+                    if ad.data.startswith(esxidentity):
+                        self.scoot_found = True
+                    if ad.data.startswith(m365identity):
+                        self.scoot_found = True
+                    if ad.data.startswith(m365proidentity):
                         self.scoot_found = True
                     else:
                         break
