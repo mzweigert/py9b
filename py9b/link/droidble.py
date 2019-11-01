@@ -106,8 +106,6 @@ class BLE(BluetoothDispatcher):
 
 
     def on_device(self, device, rssi, advertisement):
-        if self.state != "scan":
-            return
         Logger.debug("on_device event {}".format(list(advertisement)))
         address = device.getAddress()
         if self.addr and address.startswith(self.addr):
@@ -140,16 +138,13 @@ class BLE(BluetoothDispatcher):
             self.stop_scan()
 
     def on_scan_completed(self):
-        if self.ble_device and self.state != "connected":
+        if self.ble_device and not self.connected.is_set():
             self.connect_gatt(self.ble_device)
         else:
             self.close()
 
     def on_connection_state_change(self, status, state):
-        if self.ble_device and self.state != "connected":
-            self.discover_services()
-        else:
-            self.close()
+        self.discover_services()
 
     def on_services(self, status, services):
         self.services = services
@@ -178,13 +173,13 @@ class BLE(BluetoothDispatcher):
 
     def open(self, port):
         self.addr = port
-        if not self.ble_device:
+        if not self.connected.is_set():
             self.scan()
-        if self.ble_device and self.state != "connected":
+        if self.ble_device and not self.connected.is_set():
             self.connect_gatt(self.ble_device)
 
     def close(self):
-        if self.ble_device and self.state == 'connected':
+        if self.ble_device and self.connected.is_set():
             self.close_gatt()
         self.services = None
         self.rx_characteristic = None
@@ -197,7 +192,7 @@ class BLE(BluetoothDispatcher):
             print(self.state)
 
     def read(self, size):
-        if self.ble_device and self.state == 'connected':
+        if self.ble_device and self.connected.is_set():
             try:
                 data = self.rx_fifo.read(size, timeout=self.timeout)
             except queue.Empty:
@@ -207,7 +202,7 @@ class BLE(BluetoothDispatcher):
             return data
 
     def write(self, data):
-        if self.ble_device and self.state == 'connected':
+        if self.ble_device and self.connected.is_set():
             if self.dump:
                 print(">", hexlify(data).upper())
             size = len(data)
