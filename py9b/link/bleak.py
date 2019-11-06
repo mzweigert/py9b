@@ -13,6 +13,8 @@ _manuf_data_ninebot = [33, 0, 0, 0, 0, 222]
 _manuf_data_xiaomi =  [33, 0, 0, 0, 0, 223]
 _manuf_data_xiaomi_pro =  [34, 1, 0, 0, 0, 220]
 
+_write_chunk_size = 20  # as in android dumps
+
 try:
     import queue
 except ImportError:
