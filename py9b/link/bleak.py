@@ -40,6 +40,9 @@ def run_worker(loop):
     loop.run_forever()
 
 
+_write_chunk_size = 20
+
+
 class BLELink(BaseLink):
     def __init__(self, device="hci0", loop=None, *args, **kwargs):
         self.device = device
@@ -104,6 +107,15 @@ class BLELink(BaseLink):
         self._rx_fifo.write(data)
 
     def write(self, data):
+        size = len(data)
+        ofs = 0
+        while size:
+            chunk_sz = min(size, _write_chunk_size)
+            self._write_chunk(bytearray(data[ofs : ofs + chunk_sz]))
+            ofs += chunk_sz
+            size -= chunk_sz
+
+    def _write_chunk(self, data):
         fut = asyncio.run_coroutine_threadsafe(
             self._client.write_gatt_char(_rx_char_uuid, bytearray(data), True),
             self.loop,
