@@ -12,6 +12,7 @@ except ImportError:
     exit("error importing .base")
 from binascii import hexlify
 from kivy.logger import Logger
+from kivy.clock import mainthread
 from kivy.properties import StringProperty
 
 try:
@@ -55,6 +56,8 @@ transmit_ids = {
     "retail": "6e400003-b5a3-f393-e0a9-e50e24dcca9e"# transmit characteristic UUID
 }
 
+_keys_char_uuid = "00000014-0000-1000-8000-00805f9b34fb"
+
 
 SCAN_TIMEOUT = 5
 _write_chunk_size = 20
@@ -84,9 +87,12 @@ class BLE(BluetoothDispatcher):
         self.state = StringProperty()
         self.tx_characteristic = None
         self.rx_characteristic = None
+        self.keys_characteristic = None
         self.timeout = SCAN_TIMEOUT
         self.dump = True
+        self.keys = None
         self.connected = Event()
+        self.keys_recovered = Event()
 
     def __enter__(self):
         return self
@@ -95,14 +101,14 @@ class BLE(BluetoothDispatcher):
         self.close()
 
     def discover(self, timeout):
-        self.start_scan()
+        mainthread(self.start_scan)()
         self.state = "scan"
         try:
             toast(self.state)
         except:
             print(self.state)
         self.connected.wait(timeout)
-        self.stop_scan()
+        mainthread(self.stop_scan)()
 
 
     def on_device(self, device, rssi, advertisement):
@@ -114,6 +120,7 @@ class BLE(BluetoothDispatcher):
             self.scoot_found = True
             self.stop_scan()
         else:
+            name = None
             for ad in advertisement:
                 print(ad)
                 if ad.ad_type == Advertisement.ad_types.manufacturer_specific_data:
@@ -155,6 +162,7 @@ class BLE(BluetoothDispatcher):
             self.tx_characteristic = self.services.search(uuid)
             print("TX: " + uuid)
             self.enable_notifications(self.tx_characteristic, enable=True)
+        self.keys_characteristic = self.services.search(_keys_char_uuid)
         if self.tx_characteristic and self.rx_characteristic:
             self.connected.set()
             self.state = "connected"
@@ -170,6 +178,11 @@ class BLE(BluetoothDispatcher):
             data = self.tx_characteristic.getValue()
             self.rx_fifo.write(data)
             return
+
+    def on_characteristic_read(self, chara, data):
+        if chara.getUuid().toString() == _keys_char_uuid:
+            self.keys = bytearray(chara.getValue())
+            self.keys_recovered.set()
 
     def open(self, port):
         self.addr = port
@@ -218,6 +231,12 @@ class BLE(BluetoothDispatcher):
     def scan(self):
         self.discover(SCAN_TIMEOUT)
 
+    def fetch_keys(self):
+        self.read_characteristic(self.keys_characteristic)
+        self.keys_recovered.wait(5)
+        print('got keys!')
+        return self.keys
+
 
 class BLELink(BaseLink):
     def __init__(self, *args, **kwargs):
@@ -246,6 +265,9 @@ class BLELink(BaseLink):
 
     def write(self, data):
         self._adapter.write(bytearray(data))
+
+    def fetch_keys(self):
+        return self._adapter.fetch_keys()
 
 
 __all__ = ["BLELink"]

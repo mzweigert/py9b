@@ -59,7 +59,7 @@ class BLELink(BaseLink):
         return self
 
     def start(self):
-        if self._th:
+        if self._th or self.loop.is_running():
             return
 
         self._th = Thread(target=run_worker, args=(self.loop,))
