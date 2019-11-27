@@ -1,6 +1,7 @@
 *.bin
 py9b.si4project/
 
+.idea/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

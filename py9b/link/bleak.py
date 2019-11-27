@@ -1,7 +1,7 @@
 import asyncio
 
 from bleak import discover, BleakClient
-from py9b.link.base import BaseLink, LinkTimeoutException
+from .base import BaseLink, LinkTimeoutException
 from threading import Thread
 
 _rx_char_uuid = "6e400002-b5a3-f393-e0a9-e50e24dcca9e"
@@ -10,8 +10,9 @@ _keys_char_uuid = "00000014-0000-1000-8000-00805f9b34fb"
 
 _manuf_id = 0x424e
 _manuf_data_ninebot = [33, 0, 0, 0, 0, 222]
-_manuf_data_xiaomi =  [33, 0, 0, 0, 0, 223]
-_manuf_data_xiaomi_pro =  [34, 1, 0, 0, 0, 220]
+_manuf_data_xiaomi = [33, 0, 0, 0, 0, 223]
+_manuf_data_xiaomi_v2 = [32, 2, 0, 0, 0, 221]
+_manuf_data_xiaomi_pro = [34, 1, 0, 0, 0, 220]
 
 _write_chunk_size = 20  # as in android dumps
 
@@ -44,11 +45,10 @@ def run_worker(loop):
 
 _write_chunk_size = 20
 
-
 class BLELink(BaseLink):
     def __init__(self, device="hci0", loop=None, *args, **kwargs):
         self.device = device
-        self.timeout = 5
+        self.timeout = 10
         self.loop = loop or asyncio.get_event_loop()
         self._rx_fifo = Fifo()
         self._client = None
@@ -59,7 +59,7 @@ class BLELink(BaseLink):
         return self
 
     def start(self):
-        if self._th or self.loop.is_running():
+        if self._th:
             return
 
         self._th = Thread(target=run_worker, args=(self.loop,))
@@ -78,18 +78,13 @@ class BLELink(BaseLink):
     def scan(self, timeout=1):
         devices = asyncio.run_coroutine_threadsafe(
             discover(timeout=timeout, device=self.device), self.loop
-        ).result(timeout*3)
-
-        # We need to keep scanning going for connect() to properly work
-        asyncio.run_coroutine_threadsafe(
-            discover(timeout=timeout, device=self.device), self.loop
-        )
+        ).result(timeout * 3)
 
         return [
             (dev.name, dev.address)
             for dev in devices
             if dev.metadata.get('manufacturer_data', {}).get(_manuf_id, [])
-                in [_manuf_data_xiaomi, _manuf_data_xiaomi_pro, _manuf_data_ninebot]
+               in [_manuf_data_xiaomi, _manuf_data_xiaomi_v2, _manuf_data_xiaomi_pro, _manuf_data_ninebot]
         ]
 
     def open(self, port):
