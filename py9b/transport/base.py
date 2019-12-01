@@ -27,7 +27,7 @@ class BaseTransport(object):
 
     def __init__(self, link):
         self.link = link
-        self.retries = 1
+        self.retries = 3
 
     def recv(self):
         raise NotImplementedError()

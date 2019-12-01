@@ -4,58 +4,9 @@ import time
 from py9b.link.base import LinkTimeoutException
 from py9b.transport.base import BaseTransport as BT
 from py9b.command.regio import ReadRegs, WriteRegs
+from py9b.connection.base_connection import BaseConnection
 
 from time import sleep
-
-
-class Connection:
-    def __init__(self, transport, link, address):
-        self.transport = transport
-        self.link = link
-        self.address = address
-
-    def __enter__(self):
-        link = None
-        if self.link == 'bleak':
-            from py9b.link.bleak import BLELink
-            link = BLELink()
-        elif self.link == 'tcp':
-            from py9b.link.tcp import TCPLink
-            link = TCPLink()
-        elif self.link == 'serial':
-            from py9b.link.serial import SerialLink
-            link = SerialLink(timeout=1.0)
-
-        link.__enter__()
-
-        if not self.address:
-            ports = link.scan()
-            if not ports:
-                raise Exception('No devices found')
-            self.address = ports[0][1]
-
-        link.open(self.address)
-
-        transport = None
-        if self.transport == 'ninebot':
-            from py9b.transport.ninebot import NinebotTransport
-            transport = NinebotTransport(link)
-        elif self.transport == 'xiaomi':
-            from py9b.transport.xiaomi import XiaomiTransport
-            transport = XiaomiTransport(link)
-
-            if True: #transport.execute(ReadRegs(BT.ESC, 0x68, "<H"))[0] > 0x081 and self.link.startswith('ble'):
-                transport.keys = link.fetch_keys()
-                transport.recover_keys()
-                print('Keys recovered')
-
-        self._transport = transport
-        self._link = link
-
-        return transport
-
-    def __exit__(self, a, b, c):
-        self._link.__exit__(a, b, c)
 
 
 @click.group()
@@ -67,7 +18,7 @@ class Connection:
               help='Device address to use (dependent on link, defaults to automatic scan)')
 @click.pass_context
 def cli(ctx, transport, link, address):
-    ctx.obj = Connection(transport, link, address)
+    ctx.obj = BaseConnection(transport, link, address)
 
 
 @cli.command()

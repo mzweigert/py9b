@@ -45,8 +45,10 @@ def run_worker(loop):
 
 _write_chunk_size = 20
 
+
 class BLELink(BaseLink):
-    def __init__(self, device="hci0", loop=None, *args, **kwargs):
+    def __init__(self, device="hci0", loop=None):
+        super(BLELink, self).__init__()
         self.device = device
         self.timeout = 10
         self.loop = loop or asyncio.get_event_loop()
@@ -79,6 +81,9 @@ class BLELink(BaseLink):
         devices = asyncio.run_coroutine_threadsafe(
             discover(timeout=timeout, device=self.device), self.loop
         ).result(timeout * 3)
+
+        for dev in devices:
+            print(dev.name, dev.address)
 
         return [
             (dev.name, dev.address)
@@ -125,6 +130,12 @@ class BLELink(BaseLink):
         except queue.Empty:
             raise LinkTimeoutException
         return data
+
+    def is_characteristic_keys_exists(self):
+        characteristic = asyncio.run_coroutine_threadsafe(
+            self._client.get_services(), self.loop
+        ).result(5).get_characteristic(_keys_char_uuid)
+        return bool(characteristic)
 
     def fetch_keys(self):
         return asyncio.run_coroutine_threadsafe(
