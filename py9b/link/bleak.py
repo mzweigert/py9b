@@ -46,15 +46,16 @@ def run_worker(loop):
 _write_chunk_size = 20
 
 
-class BLELink(BaseLink):
+class BleakLink(BaseLink):
     def __init__(self, device="hci0", loop=None):
-        super(BLELink, self).__init__()
+        super(BleakLink, self).__init__()
         self.device = device
-        self.timeout = 10
+        self.timeout = 5
         self.loop = loop or asyncio.get_event_loop()
         self._rx_fifo = Fifo()
         self._client = None
         self._th = None
+        self._last_data_sent = None
 
     def __enter__(self):
         self.start()
@@ -69,27 +70,33 @@ class BLELink(BaseLink):
         self._th.start()
 
     def __exit__(self, exc_type, exc_value, traceback):
-        if self._client:
-            self.close()
+        self.close()
 
     def close(self):
-        asyncio.run_coroutine_threadsafe(self._client.disconnect(), self.loop).result(
-            10
-        )
+        print("Disconnecting....")
+        if self._client:
+            asyncio.run_coroutine_threadsafe(self._client.disconnect(), self.loop).result(
+                10
+            )
+        print("Stopping loop..")
+        self.loop.call_soon_threadsafe(self.loop.stop)
+        self._th.join()
+        print("Is loop running? : %s" % str(self.loop.is_running()))
 
     def scan(self, timeout=1):
         devices = asyncio.run_coroutine_threadsafe(
             discover(timeout=timeout, device=self.device), self.loop
         ).result(timeout * 3)
 
+        print("Looking for" + str(_manuf_data_xiaomi_v2))
         for dev in devices:
-            print(dev.name, dev.address)
+            print(dev.name, dev.address, dev.metadata.get('manufacturer_data', {}))
 
         return [
             (dev.name, dev.address)
             for dev in devices
             if dev.metadata.get('manufacturer_data', {}).get(_manuf_id, [])
-               in [_manuf_data_xiaomi, _manuf_data_xiaomi_v2, _manuf_data_xiaomi_pro, _manuf_data_ninebot]
+            in [_manuf_data_xiaomi, _manuf_data_xiaomi_v2, _manuf_data_xiaomi_pro, _manuf_data_ninebot]
         ]
 
     def open(self, port):
@@ -111,9 +118,10 @@ class BLELink(BaseLink):
     def write(self, data):
         size = len(data)
         ofs = 0
+        self._last_data_sent = data
         while size:
             chunk_sz = min(size, _write_chunk_size)
-            self._write_chunk(bytearray(data[ofs : ofs + chunk_sz]))
+            self._write_chunk(bytearray(data[ofs: ofs + chunk_sz]))
             ofs += chunk_sz
             size -= chunk_sz
 

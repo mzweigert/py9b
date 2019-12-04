@@ -31,9 +31,9 @@ with link:
         print(".")
         req.arg = i >> 1
         for retry in xrange(3):
-            tran.send(req)
+            tran.send(req, )
             try:
-                rsp = tran.recv()
+                rsp = tran.receive()
             except LinkTimeoutException:
                 continue
             break

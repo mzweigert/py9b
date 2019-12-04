@@ -45,7 +45,7 @@ def sniff(ctx):
     with ctx.obj as tran:
         while True:
             try:
-                print(tran.recv())
+                print(tran.send_and_receive())
             except LinkTimeoutException as exc:
                 pass
             except Exception as exc:

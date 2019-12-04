@@ -1,3 +1,5 @@
+from py9b.link.base import NoDeviceFoundException
+
 
 class BaseConnection(object):
     def __init__(self, transport, link, address):
@@ -6,27 +8,40 @@ class BaseConnection(object):
         self.address = address
 
     def __enter__(self):
+        self._link = self.__init_link()
+
+        self._link.__enter__()
+
+        if not self.address:
+            ports = self._link.scan()
+            if not ports:
+                self._link.close()
+                raise NoDeviceFoundException('No devices found')
+            self.address = ports[0][1]
+
+        self._link.open(self.address)
+        try:
+            self._transport = self.__init_transport(self._link)
+        except Exception as e:
+            self._link.close()
+            raise e
+
+        return self._transport
+
+    def __init_link(self):
         link = None
         if self.link == 'bleak':
-            from py9b.link.bleak import BLELink
-            link = BLELink()
+            from py9b.link.bleak import BleakLink
+            link = BleakLink()
         elif self.link == 'tcp':
             from py9b.link.tcp import TCPLink
             link = TCPLink()
         elif self.link == 'serial':
             from py9b.link.serial import SerialLink
             link = SerialLink(timeout=1.0)
+        return link
 
-        link.__enter__()
-
-        if not self.address:
-            ports = link.scan()
-            if not ports:
-                raise Exception('No devices found')
-            self.address = ports[0][1]
-
-        link.open(self.address)
-
+    def __init_transport(self, link):
         transport = None
         if self.transport == 'ninebot':
             from py9b.transport.ninebot import NinebotTransport
@@ -35,16 +50,11 @@ class BaseConnection(object):
             from py9b.transport.xiaomi import XiaomiTransport
             transport = XiaomiTransport(link)
 
-            keys_exists = link.is_characteristic_keys_exists()
-            if keys_exists:
+            if self.link.startswith('ble') and link.is_characteristic_keys_exists():
                 transport.keys = link.fetch_keys()
                 transport.recover_keys()
                 print('Keys recovered')
-
-        self._transport = transport
-        self._link = link
-
         return transport
 
-    def __exit__(self, a, b, c):
-        self._link.__exit__(a, b, c)
+    def __exit__(self, exc_type, exc_value, traceback):
+        self._link.__exit__(exc_type, exc_value, traceback)

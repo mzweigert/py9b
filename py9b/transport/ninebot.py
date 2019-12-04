@@ -22,7 +22,7 @@ class NinebotTransport(BT):
                 if c != b"\x5A":
                     break  # start waiting 5A again, else - this is 5A, so wait for A5
 
-    def recv(self):
+    def receive(self):
         self._wait_pre()
         pkt = self.link.read(1)
         l = ord(pkt) + 6
@@ -37,7 +37,7 @@ class NinebotTransport(BT):
             pkt[1], pkt[2], pkt[3], pkt[4], pkt[5:-2]
         )  # sa, da, cmd, arg, data
 
-    def send(self, packet):
+    def send(self, packet, **kwargs):
         pkt = (
             pack(
                 "<BBBBB",

@@ -82,7 +82,7 @@ class XiaomiTransport(BT):
                 if c != b"\x55":
                     break  # start waiting 55 again, else - this is 55, so wait for AA
 
-    def recv(self):
+    def receive(self):
         ver = self._wait_pre()
         pkt = self.link.read(1)
         l = ord(pkt) + 3 + (4 if ver == b"\xab" else 0)
@@ -102,7 +102,7 @@ class XiaomiTransport(BT):
         sa, da = self._split_addr(pkt[1])
         return BasePacket(sa, da, pkt[2], pkt[3], pkt[4:-2])  # sa, da, cmd, arg, data
 
-    def send(self, packet):
+    def send(self, packet, **kwargs):
         dev = self._make_addr(packet.src, packet.dst)
         if self.keys:
             pkt = pack("<B", len(packet.data) + 2)
@@ -125,8 +125,7 @@ class XiaomiTransport(BT):
     def recover_keys(self):
         req = BasePacket(src=BT.HOST, dst=BT.BMS, cmd=0x01,
                          arg=0x50, data=bytearray([0x20]))
-        self.send(req)
-        resp = self.recv()
+        resp = self.send_and_receive(request=req)
         self.keys += resp.data[9:]
 
 

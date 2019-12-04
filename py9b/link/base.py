@@ -6,6 +6,10 @@ class LinkOpenException(Exception):
     pass
 
 
+class NoDeviceFoundException(Exception):
+    pass
+
+
 class BaseLink(object):
     DEF_TIMEOUT = 1
 

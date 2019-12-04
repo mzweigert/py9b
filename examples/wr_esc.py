@@ -23,9 +23,9 @@ with link:
 
     req = PKT(src=BT.HOST, dst=BT.ESC, cmd=0x02, arg=0x41, data="\xCE\xAB\x00\x00")
 
-    tran.send(req)
+    tran.send(req, )
     try:
-        rsp = tran.recv()
+        rsp = tran.receive()
     finally:
         link.close()
 

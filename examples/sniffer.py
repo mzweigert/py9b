@@ -32,7 +32,7 @@ with link:
     try:
         while True:
             try:
-                rsp = tran.recv()
+                rsp = tran.receive()
                 if not rsp:
                     continue
                 if rsp.src == BT.HOST and rsp.dst == BT.ESC and rsp.cmd in (0x64, 0x65):

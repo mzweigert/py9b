@@ -19,8 +19,9 @@ class RecoveryEnergyMode(enum.Enum):
 
 
 class XiaomiBLEBaseConnection(BaseConnection):
-    def __init__(self, address):
+    def __init__(self, address, retries_reconnect=1):
         super(XiaomiBLEBaseConnection, self).__init__(transport="xiaomi", link="bleak", address=address)
+        self._retries_reconnect = retries_reconnect
 
     def __enter__(self):
         super(XiaomiBLEBaseConnection, self).__enter__()

@@ -27,33 +27,34 @@ class BaseTransport(object):
 
     def __init__(self, link):
         self.link = link
-        self.retries = 3
+        self.retries = 5
 
-    def recv(self):
+    def receive(self):
         raise NotImplementedError()
+
+    def send_and_receive(self, request, retries=None):
+        exc = None
+        for n in range(retries or self.retries):
+            try:
+                self.send(request)
+                response = self.receive()
+                return response
+            except Exception as e:
+                print("Retry sending request... %s" % str(request))
+                exc = e
+                pass
+        raise exc
 
     def send(self, src, dst, cmd, arg, data=bytearray()):
         raise NotImplementedError()
 
     def execute(self, command, retries=None):
-        self.send(command.request)
-        if not command.has_response:
-            return True
-            # TODO: retry ?
-        exc = None
-        for n in range(retries or self.retries):
-            try:
-                rsp = self.recv()
-                return command.handle_response(rsp)
-            except Exception as e:
-                print("retry")
-                exc = e
-                pass
-        raise exc
+        rsp = self.send_and_receive(command.request, retries)
+        return command.handle_response(rsp)
 
     @staticmethod
     def GetDeviceName(dev):
-        return BaseTransport.DeviceNames.get(dev, "%02X" % (dev))
+        return BaseTransport.DeviceNames.get(dev, "%02X" % dev)
 
 
 __all__ = ["checksum", "BaseTransport"]

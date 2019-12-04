@@ -18,9 +18,9 @@ with TCPLink() as link:
     req = PKT(src=BT.HOST, dst=BT.BMS, cmd=0x01, arg=0x10, data="\x10")
 
     while raw_input("Press ENTER to send...") != "q":
-        tran.send(req)
+        tran.send(req, )
         try:
-            rsp = tran.recv()
+            rsp = tran.receive()
         except LinkTimeoutException:
             print("No response")
             continue

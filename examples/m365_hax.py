@@ -28,8 +28,8 @@ with link:
 
         # Recover longer keystream
         req = PKT(src=BT.HOST, dst=BT.BMS, cmd=0x01, arg=0x50, data=bytearray([0x20]))
-        tran.send(req)
-        resp = tran.recv()
+        tran.send(req, )
+        resp = tran.receive()
         tran.keys += resp.data[9:]
         print("Got %d bytes of keystream" % (len(tran.keys),))
 

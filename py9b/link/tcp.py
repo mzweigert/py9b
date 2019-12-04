@@ -13,7 +13,7 @@ def recvall(sock, size):
     data = ""
     while len(data) < size:
         try:
-            pkt = sock.recv(size - len(data))
+            pkt = sock.receive(size - len(data))
         except socket.timeout:
             raise LinkTimeoutException()
         data += pkt
