@@ -19,9 +19,8 @@ class RecoveryEnergyMode(enum.Enum):
 
 
 class XiaomiBLEBaseConnection(BaseConnection):
-    def __init__(self, address, retries_reconnect=1):
+    def __init__(self, address=None):
         super(XiaomiBLEBaseConnection, self).__init__(transport="xiaomi", link="bleak", address=address)
-        self._retries_reconnect = retries_reconnect
 
     def __enter__(self):
         super(XiaomiBLEBaseConnection, self).__enter__()
@@ -46,13 +45,13 @@ class XiaomiBLEBaseConnection(BaseConnection):
         return pp_distance(self.__execute_read_regs(0x34, "<L"))
 
     def get_chassis_temp(self):
-        return self.__execute_read_regs(0x3e, "<H") / 10.0,
+        return self.__execute_read_regs(0x3e, "<H") / 10.0
 
     def get_battery_level(self):
-        return self.__execute_read_regs(0x22, "<H"),
+        return self.__execute_read_regs(0x22, "<H")
 
     def get_speed(self):
-        speed = float(self.__execute_read_regs(0x26, "<H") / 1000.0,)
+        speed = float(self.__execute_read_regs(0x26, "<H") / 1000.0)
         if 0.00 <= speed <= 35.00:
             return speed
         else:
