@@ -55,7 +55,7 @@ class XiaomiBLEBaseConnection(BaseConnection):
         if 0.00 <= speed <= 35.00:
             return speed
         else:
-            return 0
+            return 0.00
 
     def get_speed_mh(self):
         return self.__execute_read_regs(0xb5, "<H"),
