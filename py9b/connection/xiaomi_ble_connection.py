@@ -17,6 +17,14 @@ class RecoveryEnergyMode(enum.Enum):
     Medium = 1
     Strong = 2
 
+    def next_val(self):
+        if self == RecoveryEnergyMode.Weak:
+            return RecoveryEnergyMode.Medium
+        elif self == RecoveryEnergyMode.Medium:
+            return RecoveryEnergyMode.Strong
+        else:
+            return RecoveryEnergyMode.Weak
+
 
 class XiaomiBLEBaseConnection(BaseConnection):
     def __init__(self, address=None):
