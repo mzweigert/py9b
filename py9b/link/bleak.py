@@ -10,8 +10,7 @@ _keys_char_uuid = "00000014-0000-1000-8000-00805f9b34fb"
 
 _manuf_id = 0x424e
 _manuf_data_ninebot = [33, 0, 0, 0, 0, 222]
-_manuf_data_xiaomi = [33, 0, 0, 0, 0, 223]
-_manuf_data_xiaomi_v2 = [32, 2, 0, 0, 0, 221]
+_manuf_data_xiaomi = [[33, 0, 0, 0, 0, 223], [32, 2, 0, 0, 0, 221], [32, 1, 0, 0, 0, 222]]
 _manuf_data_xiaomi_pro = [34, 1, 0, 0, 0, 220]
 
 _write_chunk_size = 20  # as in android dumps
@@ -88,7 +87,7 @@ class BleakLink(BaseLink):
             discover(timeout=timeout, device=self.device), self.loop
         ).result(timeout * 3)
 
-        print("Looking for" + str(_manuf_data_xiaomi_v2))
+        print("Looking for" + str(_manuf_data_xiaomi))
         for dev in devices:
             print(dev.name, dev.address, dev.metadata.get('manufacturer_data', {}))
 
@@ -96,7 +95,7 @@ class BleakLink(BaseLink):
             (dev.name, dev.address)
             for dev in devices
             if dev.metadata.get('manufacturer_data', {}).get(_manuf_id, [])
-            in [_manuf_data_xiaomi, _manuf_data_xiaomi_v2, _manuf_data_xiaomi_pro, _manuf_data_ninebot]
+            in [_manuf_data_xiaomi_pro, _manuf_data_ninebot] + _manuf_data_xiaomi
         ]
 
     def open(self, port):
